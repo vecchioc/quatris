@@ -5,11 +5,13 @@
 #include "computer.h"
 
 unsigned int mossa2;
+  int max_dep=0;
 
 int mv[25];
-double
+int
 valuta(unsigned int a,unsigned int b,int depth, int alpha, int beta,int MAXD);
 
+double  position(unsigned int, int);
 int Count (unsigned int w);
 
 void
@@ -22,7 +24,7 @@ init_computer_alghoritm() {
   mv[21]=0x100000; mv[22]=0x200000; mv[23]=0x400000; 
                    mv[24]=0x800000; mv[25]=0x1000000;
 
-
+	     
 
 }
 //    v=valuta(board2,board1,DP,-2000,2000);
@@ -33,12 +35,15 @@ init_computer_alghoritm() {
 //      printf("faccio quatris fra %.f mosse\n",ceil(previsione/2));
 //    }
 
-int  posizione(unsigned int u) {
+double  position(unsigned int u,int j) {
   unsigned int w,v;
   int i;
+ 
   v=u;
   for (i=1; i <= 5; i++){
     w = 0x108421&v;
+    if(!w&mv[i]) continue;
+
     if ((w == 0x08421) || (w == 0x108420) || (w == 0x108421)) 
       return 1;
     v=v>>1;
@@ -46,6 +51,8 @@ int  posizione(unsigned int u) {
   v=u;
   for (i=1; i <= 5; i++){
     w = 0x01f&v;
+    if(!w&mv[i]) continue;
+
     if ((w == 0x01f) || (w == 0x0f) || (w == 0x1e)) 
       return 1;
     v=v>>5;
@@ -61,6 +68,7 @@ int  posizione(unsigned int u) {
                     || ((0x222200&v) == 0x222200) || ((0x8888&v) == 0x8888)) 
       return 1;
 
+
   return 0; 
 }
 
@@ -68,11 +76,11 @@ int  posizione(unsigned int u) {
 // this is the wrapper for the gui
 double
 computer_run(unsigned int b1, unsigned int b2) {
-  int deep;
+  int deep, v;
  
-  deep=25-Count(b1|b2);
+   deep=25-Count(b1|b2);
 
-
+   
   if(deep == 25){
   
     mossa2 = 0x1000;
@@ -104,42 +112,34 @@ computer_run(unsigned int b1, unsigned int b2) {
     }
   }
  
+  
 
+  deep=(deep > DP)? DP:deep;
+    init_computer_alghoritm();
+    if(deep>4)
+      {
+         v=valuta (b1,b2,4,-2000,2000,4);
+         if(v)
+            return v;
+	 
+         mv[1]=mossa2;
+      }
+  max_dep=0;	  
+  v=valuta(b1,b2,deep,-2000,2000,deep);
 
-  deep=(deep > 8)? 8:deep;
-  valuta (b1,b2,deep-3,-2000,2000,deep-3);
-  mv[1]=mossa2;
-  return valuta(b1,b2,deep,-2000,2000,deep);
+  return v;
 
 }
 
 
-double
+int
 valuta(unsigned int a,unsigned int b,int depth, int alpha, int beta,int MAXD) {
-  unsigned int i,moves;
-  int val,res;
+  unsigned int i,moves,res;
+  int val,w;
 
-  if(depth==0) {
-    if (posizione(b))
-      return -1;
-    else {
-    
-      moves = ~(a|b);
-      i=1;
-      while(i <= 25){
-	
-	if ((moves & mv[i])==mv[i]){
-	  
-	  res=a|mv[i];
-	  if(posizione(res))
-	    return 1;
-	  
-	}
-	i++;
-      }
-      return 0;
-    }
-  }
+
+  if( (depth==0)) 
+    return 0;
   
   moves = ~(a|b);
  
@@ -150,23 +150,22 @@ valuta(unsigned int a,unsigned int b,int depth, int alpha, int beta,int MAXD) {
  
   while(i <= 25){
 
-    if ((moves & mv[i])==mv[i]){
+    if (moves & mv[i]){ 
+      res = a|mv[i];
 
-      res=a|mv[i];
-      if (posizione(res))
-	val=depth+1;
-   
-      
-      else 
-	val = -valuta (b,res,depth-1,-beta,-alpha,MAXD);
+      w = position(res,i);
+      if (w) {
+	val=depth;
+	if (depth==0) return w;
+      }
+      else val = -valuta (b,res,depth-1,-beta,-alpha,MAXD);
 
- 
+
       if (val >= beta)
       	return beta;
       if (val > alpha){
 	alpha = val;
       	if(depth==MAXD) mossa2 = mv[i]; 
-
 
       }
 
@@ -174,6 +173,7 @@ valuta(unsigned int a,unsigned int b,int depth, int alpha, int beta,int MAXD) {
 
     i++;
   }
+  //  if(depth>max_dep){printf("%d\n",depth); max_dep=depth;}
   return alpha; 
 }
 
